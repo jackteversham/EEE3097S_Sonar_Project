@@ -1,9 +1,11 @@
 # This is basic code to get serial data from a Teensy
 
 # TYPICAL USAGE
+# import Pkg;
+# Pkg.add("SerialPorts")
 using SerialPorts
 #list_serialports() # show available ports
-sp = SerialPort("COM4:", 9600) # On windows try "COM4:"
+sp = SerialPort("/dev/tty.usbmodem48351501", 9600) # On windows try "COM4:"
 # write(sp, "Hello") # write a string to the port (or use a binary data type)
 s = readavailable(sp); # read from the port (s is now of type String)
 println(s);
