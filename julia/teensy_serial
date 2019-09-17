@@ -1,0 +1,33 @@
+# This is basic code to get serial data from a Teensy
+
+# TYPICAL USAGE
+using SerialPorts
+#list_serialports() # show available ports
+sp = SerialPort("COM4:", 9600) # On windows try "COM4:"
+# write(sp, "Hello") # write a string to the port (or use a binary data type)
+s = readavailable(sp); # read from the port (s is now of type String)
+println(s);
+sleep(0.1);
+# s = readavailable(sp); # read from the port (s is now of type String)
+# println(s);
+# sleep(2);
+# s = readavailable(sp); # read from the port (s is now of type String)
+# println(s);
+while true
+    s = readavailable(sp); # read from the port (s is now of type String)
+    print(s);
+    sleep(1.1);
+end
+
+x = Vector{UInt8}(s) # Convert string to an array of Uint8 integers.
+println(x)
+close(sp) # close the port
+# NOTE1: The s=readavailable(sp) function reads all bytes that are currently in
+# the input buffer and returns a String. To extract the bytes into an array of
+# integers, use x = Vector{UInt8}(s). Converting individual string characters
+# using something like Uint8(s[1]) does not work for bytes that are not in the
+# standard ASCII range 0-127.
+# NOTE2: If the 16-bit ADC data is sent in Big Endian format (High first,Low
+# second) from the microcontroller is the PC, then to reconstruct the 16 bit ADC
+# number:
+# ADCvalue = x[n]*256 + x[n+1]
