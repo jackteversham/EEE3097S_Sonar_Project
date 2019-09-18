@@ -1,8 +1,13 @@
 
-int counter = 0;
+/**
+ * Global Variables
+ */
 int a[25000];
 int b[10000];
 
+/**
+ * Setup Method
+ */
 void setup() {
   Serial.begin(115200);
   while (!Serial);
@@ -23,6 +28,9 @@ void setup() {
 
 }
 
+/**
+ * Main Method
+ */
 void loop() {
     int e = 0;
 //  for(int i = 0; i<25000;i++){
