@@ -3,9 +3,10 @@
 # TYPICAL USAGE
 # import Pkg;
 # Pkg.add("SerialPorts")
+# Pkg.rm("SerialPorts")
 using SerialPorts
 #list_serialports() # show available ports
-sp = SerialPort("/dev/tty.usbmodem48351501", 9600) # On windows try "COM4:"
+sp = SerialPort("/dev/tty.usbmodem48351501", 9600); # On windows try "COM4:"
 # write(sp, "Hello") # write a string to the port (or use a binary data type)
 s = readavailable(sp); # read from the port (s is now of type String)
 println(s);
@@ -15,14 +16,17 @@ sleep(0.1);
 # sleep(2);
 # s = readavailable(sp); # read from the port (s is now of type String)
 # println(s);
-while true
-    s = readavailable(sp); # read from the port (s is now of type String)
-    print(s);
-    sleep(1.1);
-end
+# while true
+#     s = readavailable(sp); # read from the port (s is now of type String)
+#     print(s);
+#     sleep(1.1);
+# end
 
 x = Vector{UInt8}(s) # Convert string to an array of Uint8 integers.
-println(x)
+for i = 1:length(x)
+  println(x[i])
+end
+
 close(sp) # close the port
 # NOTE1: The s=readavailable(sp) function reads all bytes that are currently in
 # the input buffer and returns a String. To extract the bytes into an array of

@@ -1,0 +1,70 @@
+#Step 1
+import Pkg;
+# Pkg.add("Plots");
+using Plots;
+using SerialPorts;
+using FFTW;
+
+sp = SerialPort("/dev/tty.usbmodem48351501", 9600); # On windows try "COM4:"
+s = readavailable(sp); # read from the port (s is now of type String)
+x = Vector{UInt8}(s); # Convert string to an array of Uint8 integers.
+
+c = 343;                # Speed of sound in air in m/s
+r_max = 12;              # Maximum range in metres to which to simulate.
+t_max = 2*r_max/c;      # Time delay to max range
+f0 = 40000;             # Centre frequency is 10 kHz
+B = 2000;               # Chirp bandwidth
+rect(t) = (abs.(t) .<= 0.5)*1.0;
+
+T_out = 5e-3;
+K = B/T_out;                # Chirp rate
+td = 0.5*T_out;             # Chirp delay
+
+# r = c*t/2;
+
+dt_chirp = 1.919e-7;
+t_chirp = collect(0:dt_chirp:T_out); # t=0:dt:t_max defines a “range”.
+
+dt_sample = 7.246e-6;
+t_sample = collect(0:dt_sample:T_out);
+
+# v_tx_chirp = cos.( 2*pi*(f0*(t_chirp .- dt_chirp) + 0.5*K*(t_chirp .- dt_chirp).^2) ) .* rect.((t_chirp .-dt_chirp)/T_out);
+v_tx_chirp = cos.( 2*pi*(f0*(t_chirp .- dt_chirp) + 0.5*K*(t_chirp .- dt_chirp).^2) );
+v_tx_sample = cos.( 2*pi*(f0*(t_sample .- dt_sample) + 0.5*K*(t_sample .- dt_sample).^2) );
+
+
+# write(sp, v_tx_chirp);
+
+T_rx = 60e-3;
+t_rx =collect(0:dt_sample:T_rx);
+
+t_sample_padded = zeros(length(t_rx));
+echo = zeros(length(t_rx));
+
+
+for i = 1:length(t_sample)
+  t_sample_padded[i] = v_tx_sample[i];
+end
+
+for i = 1:length(t_sample)
+  echo[i+1000] = v_tx_sample[i];
+end
+
+print(echo);
+print(length(echo));
+
+V_TX = fft(t_sample_padded);
+V_RX = fft(echo);
+
+# Read from serial
+# v_rx = A1*cos.( 2*pi*(f0*(t.-td.-td1) + 0.5*K*(t.-td.-td1).^2) ) .* rect((t.- td.-td1)/T) + A2*cos.( 2*pi*(f0*(t.-td.-td2) + 0.5*K*(t.-td.-td2).^2) ) .* rect((t.- td.-td2)/T) + A3*cos.( 2*pi*(f0*(t.-td.-td3) + 0.5*K*(t.-td.-td3).^2) ) .* rect((t.- td.-td3)/T);
+# V_RX = fft(v_rx);
+
+#%%
+#2.1
+H = conj( V_TX);
+V_MF = H.*V_RX;
+v_mf = ifft(V_MF);
+v_mf = real(v_mf);
+
+plot(v_mf);
