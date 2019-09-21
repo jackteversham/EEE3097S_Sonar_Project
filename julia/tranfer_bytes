@@ -1,0 +1,62 @@
+# This is basic code to get an array from the Teensy
+
+rx_len = 10000; # wait until buffer reaches this size before readding
+
+using SerialPorts
+print(list_serialports()) # show available ports
+sp = SerialPort("COM4:", 9600) # On windows try "COM4:"
+
+# wait for start
+while true
+    println(bytesavailable(sp));
+    s = readavailable(sp); # read from the port (s is now of type String)
+    if s == "start"
+        println("start recieved!")
+        break;
+    else
+        println("waiting for start...")
+    end
+    sleep(0.3);
+end
+
+# wait for buffer to fill up
+while bytesavailable(sp) < rx_len
+    sleep(0.01)
+end
+
+# for debugging
+println(bytesavailable(sp));
+
+# read buffer and convert to array
+s = readavailable(sp); # read from the port (s is now of type String)
+x = Vector{UInt8}(s); # # convert string to an array of Uint8 integers
+
+# check that array is of size expected
+println(length(x));
+if length(x) != rx_len
+    print("rx_len=");
+    print(length(x));
+    println(" => rx is wrong size");
+end
+
+# for debugging
+# println(s);
+# println(x);
+
+# check values are 255 and 0
+println(x[8192]);
+println(x[8193]);
+
+println("done");
+close(sp) # close the port
+
+
+# NOTE1: The s=readavailable(sp) function reads all bytes that are currently in
+# the input buffer and returns a String. To extract the bytes into an array of
+# integers, use x = Vector{UInt8}(s). Converting individual string characters
+# using something like Uint8(s[1]) does not work for bytes that are not in the
+# standard ASCII range 0-127.
+# NOTE2: If the 16-bit ADC data is sent in Big Endian format (High first,Low
+# second) from the microcontroller is the PC, then to reconstruct the 16 bit ADC
+# number:
+# ADCvalue = x[n]*256 + x[n+1]
