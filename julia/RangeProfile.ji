@@ -1,0 +1,92 @@
+import Pkg;
+using Plots;
+using SerialPorts;
+using FFTW;
+
+# %% define rect
+rect(t) = (abs.(t) .<= 0.5)*1.0;
+
+# %% read from serial and create receive array
+sp = SerialPort("COM3:", 115200);
+while bytesavailable(sp) == 0
+    sleep(0.1)l
+end
+sbuffer = readavailable(sp);
+v_rx = Vector{UInt8}(sbuffer);
+
+# %% fourier transform received array
+V_RX = fft(v_rx);
+
+# %% array to use for match fiter
+receivePeriod = 7.246e-6;
+receivingTime = 60e-3;
+receiveTimeAxis = collect(0:samplePeriod:receivingTime);
+B = 2000;
+f0 = 40e3;
+chirpTime = 5e-3;
+K = B/chirpTime;                # Chirp rate
+chirpTimeAxis = collect(0:receivePeriod:chirpTime);
+SampleWave = cos.( 2*pi*(f0*(chirpTimeAxis .- receivePeriod) + 0.5*K*(chirpTimeAxis .- receivePeriod).^2) );
+
+paddedSample = zeros(length(timeAxis));
+for i = 1:length(chirpTimeAxis)
+  paddedSample[i] = SampleWave[i];
+end
+
+# %% fourier transform transmitted pulse
+V_TX = fft(paddedSample);
+
+# %% create range array
+c = 343;
+range = c*timeAxis/2;
+
+# %% define frequency axis
+N = length(timeAxis);
+Δf = 1/(N*receivePeriod);
+f_axis = (0:N-1)*Δf;
+
+# %% create windowing function
+window = rect((f_axis)/B);
+hanningWF = 0.5 .+ 0.5*cos.(((2*π) .* f_axis) ./ B);
+hanningWindow = hanningWF .* window;
+
+# %% matched filter
+H = conj(V_TX);
+V_MF = H.*V_RX;
+v_mf = ifft(V_MF);
+v_mf = real(v_mf);
+
+plot(range, v_mf);
+
+# %% create ANAL functions
+V_ANAL = 2*V_MF;
+if mod(N,2)==0; # case N even
+    neg_freq_range = Int(N/2):N; # Define range of “neg-freq” components
+else # case N odd
+    neg_freq_range = Int((N+1)/2):N;
+end
+V_ANAL[neg_freq_range] .= 0;
+v_anal = ifft(V_ANAL);
+
+# %% create baseband function
+j=im; # Assign j as sqrt(-1) (“im” in julia)
+v_bb = v_anal.*exp.(-j*2*pi*f0*t_rx);
+V_BB = fft(v_bb);
+
+# %% output rect window result
+RECTwindow = V_BB .* window;
+rectwindow = ifft(RECTwindow);
+plot(range, abs.(rectwindow));
+
+# %% output hanning window result
+VHANNINGOUT = V_BB .* hanningWindow;
+vhanningout = ifft(VHANNINGOUT);
+plot(range, abs.(vhanningout));
+
+# %% inverse filter setup and output
+rect(f_axis) = (abs.(f_axis) .<= 0.5)*1.0;
+V_ANAL_inverse_filter_only = (V_RX ./ V_TX) .* rect.((f_axis .- f0)/B);
+v_anal_inverse_filter_only = ifft(V_ANAL_inverse_filter_only);
+
+plot(range, abs.(v_anal_inverse_filter_only));
+plot(range, real.(v_anal_inverse_filter_only));
