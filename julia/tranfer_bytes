@@ -4,7 +4,7 @@ rx_len = 10000; # wait until buffer reaches this size before readding
 
 using SerialPorts
 print(list_serialports()) # show available ports
-sp = SerialPort("COM4:", 9600) # On windows try "COM4:"
+sp = SerialPort("COM3:", 9600) # On windows try "COM4:"
 
 # wait for start
 while true

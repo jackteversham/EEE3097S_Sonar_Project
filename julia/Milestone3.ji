@@ -5,38 +5,68 @@ using Plots;
 using SerialPorts;
 using FFTW;
 
-sp = SerialPort("/dev/tty.usbmodem48351501", 9600); # On windows try "COM4:"
-s = readavailable(sp); # read from the port (s is now of type String)
+# sp = SerialPort("COM3:", 115200); # On windows try "COM4:"
+# s = readavailable(sp); # read from the port (s is now of type String)
+
+# %% read from serial and create rx array
+sp = SerialPort("COM3:", 115200); # On windows try "COM4:"
+# write(sp, "Hello") # write a string to the port (or use a binary data type)
+while bytesavailable(sp) == 0
+    sleep(0.1)
+end
+s = readavailable(sp);
 x = Vector{UInt8}(s); # Convert string to an array of Uint8 integers.
 
-c = 343;                # Speed of sound in air in m/s
-r_max = 12;              # Maximum range in metres to which to simulate.
-t_max = 2*r_max/c;      # Time delay to max range
+# %% defining axes
 f0 = 40000;             # Centre frequency is 10 kHz
 B = 2000;               # Chirp bandwidth
-rect(t) = (abs.(t) .<= 0.5)*1.0;
-
 T_out = 5e-3;
 K = B/T_out;                # Chirp rate
 td = 0.5*T_out;             # Chirp delay
+dt_sample = 7.246e-6;
+t_sample = collect(0:dt_sample:T_out);
+c = 343;
+T_rx = 60e-3;
+t_rx =collect(0:dt_sample:T_rx);
+r = c*t_rx/2;
+N = length(t_rx)
+Δf = 1/(N*dt_sample);
+f_axis = (0:N-1)*Δf;
+
+
+
+
+rect(t) = (abs.(t) .<= 0.5)*1.0;
+window = rect((f_axis)/B);
+hanningWF = 0.5 .+ 0.5*cos.(((2*π) .* f_axis) ./ B);
+hanningWindow = hanningWF .* window;
+
+
+
+
+
+
+
 
 # r = c*t/2;
 
 dt_chirp = 1.919e-7;
 t_chirp = collect(0:dt_chirp:T_out); # t=0:dt:t_max defines a “range”.
 
-dt_sample = 7.246e-6;
-t_sample = collect(0:dt_sample:T_out);
+
 
 # v_tx_chirp = cos.( 2*pi*(f0*(t_chirp .- dt_chirp) + 0.5*K*(t_chirp .- dt_chirp).^2) ) .* rect.((t_chirp .-dt_chirp)/T_out);
 v_tx_chirp = cos.( 2*pi*(f0*(t_chirp .- dt_chirp) + 0.5*K*(t_chirp .- dt_chirp).^2) );
 v_tx_sample = cos.( 2*pi*(f0*(t_sample .- dt_sample) + 0.5*K*(t_sample .- dt_sample).^2) );
 
-
 # write(sp, v_tx_chirp);
 
-T_rx = 60e-3;
-t_rx =collect(0:dt_sample:T_rx);
+
+inverseAxisRange = r;
+inverseAxixFreq = f_axis;
+
+
+
 
 t_sample_padded = zeros(length(t_rx));
 echo = zeros(length(t_rx));
@@ -50,21 +80,43 @@ for i = 1:length(t_sample)
   echo[i+1000] = v_tx_sample[i];
 end
 
-print(echo);
-print(length(echo));
+# print(echo);
+# print(length(echo));
+
+trec = [249,211,187,223,240,226,208,220,224,213,224,237,213,196,222,245,230,201,203,231,239,225,206,209,220,231,232,215,203,213,233,237,217,200,217,232,229,221,210,214,219,228,231,214,203,216,234,234,213,206,215,231,237,217,206,209,226,237,223,203,208,229,242,220,203,207,225,240,224,204,204,223,244,226,204,201,221,243,226,206,201,220,240,229,207,199,221,241,228,207,199,222,241,226,205,201,229,238,227,196,198,233,240,223,193,206,235,238,212,200,217,234,231,208,208,224,231,220,212,212,223,225,218,214,218,223,219,219,215,221,219,220,218,216,219,222,218,218,221,222,216,216,220,223,215,214,220,223,222,217,217,222,220,221,219,218,220,222,221,217,216,223,224,215,215,220,224,221,216,219,222,219,218,219,221,222,222,218,217,220,223,221,214,219,224,224,215,218,223,223,218,217,220,221,222,219,217,220,222,221,217,220,219,220,221,219,219,222,219,218,217,224,221,214,215,223,224,219,218,219,221,222,220,216,218,223,224,218,216,219,224,222,217,217,221,223,221,218,215,220,223,223,215,216,222,223,220,217,218,219,222,219,216,217];
 
 V_TX = fft(t_sample_padded);
-V_RX = fft(echo);
+V_RX = fft(x);
 
 # Read from serial
 # v_rx = A1*cos.( 2*pi*(f0*(t.-td.-td1) + 0.5*K*(t.-td.-td1).^2) ) .* rect((t.- td.-td1)/T) + A2*cos.( 2*pi*(f0*(t.-td.-td2) + 0.5*K*(t.-td.-td2).^2) ) .* rect((t.- td.-td2)/T) + A3*cos.( 2*pi*(f0*(t.-td.-td3) + 0.5*K*(t.-td.-td3).^2) ) .* rect((t.- td.-td3)/T);
 # V_RX = fft(v_rx);
 
 #%%
-#2.1
+# Define matched filter
 H = conj( V_TX);
 V_MF = H.*V_RX;
 v_mf = ifft(V_MF);
 v_mf = real(v_mf);
 
-plot(v_mf);
+V_ANAL = 2*V_MF;
+N = length(V_MF);
+
+if mod(N,2)==0; # case N even
+    neg_freq_range = Int(N/2):N; # Define range of “neg-freq” components
+else # case N odd
+    neg_freq_range = Int((N+1)/2):N;
+end
+
+V_ANAL[neg_freq_range] .= 0;
+v_anal = ifft(V_ANAL);
+
+j=im; # Assign j as sqrt(-1) (“im” in julia)
+v_bb = v_anal.*exp.(-j*2*pi*f0*t_rx);
+V_BB = fft(v_bb);
+vHanningReduced = V_BB .* hanningWindow;
+
+plot(v_mf)
+plot(r, v_mf)
+
+plot(r, abs.(ifft(vHanningReduced)))

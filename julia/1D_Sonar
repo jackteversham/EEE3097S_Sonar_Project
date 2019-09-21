@@ -1,0 +1,12 @@
+
+# import all required packages
+
+import Pkg;
+# Pkg.add("SerialPorts") # this does not work with juliabox
+Pkg.add("PyPlot");
+Pkg.add("FFTW");
+
+# using SerialPorts # this does not work with juliabox
+using PyPlot # import plot library
+using FFTW
+using Statistics # import basic stats functions
