@@ -111,7 +111,8 @@ display(plot(range, abs.(vhanningout)))
 
 # %% output matched filter results
 display(plot(range[1:7452], abs.(v_mf_compensated)[1:7452]))
-display(plot(range[1:7452], abs.(v_mf)[1:7452]))
+display(plot(range[1:7452], abs.(v_mf[1:7452])))
+plot(v_mf)
 
 # %% inverse filter setup and output
 # rect(f_axis) = (abs.(f_axis) .<= 0.5)*1.0;

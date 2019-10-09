@@ -1,0 +1,39 @@
+import Pkg;
+using SerialPorts;
+using Plots;
+
+# recording chirp
+
+sp = SerialPort("COM3:", 115200);
+while bytesavailable(sp) == 0
+    sleep(0.1)
+end
+sbuffer = readavailable(sp);
+v_rx = Vector{UInt8}(sbuffer);
+
+avg_in = mean(v_rx)
+v_rx = v_rx .- avg_in;
+
+plot(v_rx);
+print(v_rx);
+
+lower =
+upper =
+
+chirp_unpadded = v_rx[lower:upper]
+
+plot(chirp_unpadded);
+
+chirp = zeros(8281)
+for i = 1:length(chirp_unpadded)
+  chirp[i] = chirp_unpadded[i];
+end
+
+# for i = 1:length(chirp)
+#   println(chirp);
+# end
+
+print(chirp);
+
+# chirp array
+chirp = []
