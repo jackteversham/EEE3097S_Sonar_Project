@@ -2,17 +2,17 @@
 
 # TYPICAL USAGE
 import Pkg;
-Pkg.add("LibSerialPort")
-Pkg.rm("LibSerialPort")
-Pkg.build("LibSerialPort")
-using LibSerialPort
+# Pkg.add("LibSerialPort")
+# Pkg.rm("LibSerialPort")
+# Pkg.build("LibSerialPort")
+using SerialPorts
 # using Plots
 #list_serialports() # show available ports
 
-sp=open("/dev/tty.usbmodem48351501",9600) # Or whatever in Linux, Windows or Mac. //38400
+sp = SerialPort("/dev/tty.usbmodem48351501",9600) # Or whatever in Linux, Windows or Mac. //38400
     #clear buffer
 while (bytesavailable(sp) > 0)
-    readline(sp);
+    readavailable(sp)
 end
 
 # list_ports()
@@ -25,25 +25,27 @@ write(sp,"c\n")
 sleep(0.1)
 write(sp,"p\n")
 # write(sp, "Hello") # write a string to the port (or use a binary data type)
-# while bytesavailable(sp) == 0
-#     sleep(0.1)
-# end
+while bytesavailable(sp) == 0
+    sleep(0.1)
+end
 
 #sleep(0.5) # Give time for a response from the micro
-sleep(8)
-println(2);
+# sleep(8)
+# println(2);
 #read in signal from serial port here
 BytesAvailable = bytesavailable(sp) # Number of bytes available in the buffer
 println(BytesAvailable)
-v=zeros(UInt16, 12955) # Create an Uint8 array into which to read the
+s = readavailable(sp)
+x_original = Vector{UInt16}(s)
+# v=zeros(UInt16, 12955) # Create an Uint8 array into which to read the
 
 b = 1;
     #print("BytesAvailableAtStart: ",bytesavailable(sp))
-while (bytesavailable(sp) > 0) #divide this by 4?? 4 bytes in a float?
-         v[b] = parse(UInt16, (readline(sp)));
-         println(v[b]);
-         b = b+1;
-end
+# while (1) #divide this by 4?? 4 bytes in a float?
+#     v[b] = parse(UInt16, (readline(sp)));
+#     println(v[b]);
+#     b = b+1;
+# end
  
 
 # s = readavailable(sp); # read from the port (s is now of type String)
