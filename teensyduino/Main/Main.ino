@@ -1,4 +1,4 @@
-#include <ADC.h>
+#include "ADC.h"
 #include <DMAChannel.h>
 #include "Waveform.h"
 
@@ -30,7 +30,8 @@ bool          STREAM  = false;
 bool          VERBOSE = true;
 bool          BINARY = true;
 // I/O-Pins
-const int readPin0             = A0;
+const int readPin0             = A14;
+const int readPin1             = A16;
 const int ledPin               = LED_BUILTIN;
 
 //Added variables
@@ -70,6 +71,7 @@ void setup() { // =====================================================
 
   pinMode(LED_BUILTIN, OUTPUT);
   pinMode(readPin0, INPUT); // single ended
+  pinMode(readPin1, INPUT);
 
   // Setup monitor pin
   pinMode(ledPin, OUTPUT);
@@ -153,13 +155,20 @@ void loop() { // ===================================================
           }
       
       else if (inByte == 'c') { // single block conversion
-          if ((aorb_busy == 1) || (aorb_busy == 2)) { stop_ADC(); }
+          if ((aorb_busy == 1) || (aorb_busy == 2)) { 
+            stop_ADC0(); 
+            stop_ADC1(); 
+           }
           //setup_ADC_single();
           //start_ADC();
-          setup_ADC_single();
-          start_ADC();
-          wait_ADC_single();
-          stop_ADC();
+          setup_ADC_single0();
+          setup_ADC_single1();
+          start_ADC0();
+          start_ADC1();
+          wait_ADC_single0();
+          wait_ADC_single1();
+          stop_ADC0(); 
+          stop_ADC1();
           adc->printError();
           adc->resetError();
       } else if (inByte == 'p') { // print buffer
@@ -173,14 +182,12 @@ void loop() { // ===================================================
     adc->printError();
     adc->resetError();
   } 
-    
-  
 
 } // end loop ======================================================
 
 
 // ADC
-void setup_ADC_single(void) {
+void setup_ADC_single0(void) {
   // clear buffers
   memset((void*)buf_a, 0, sizeof(buf_a));
   // Initialize the ADC
@@ -206,6 +213,26 @@ void setup_ADC_single(void) {
   dma0.interruptAtCompletion();
   //dma0.disableOnCompletion();
   dma0.attachInterrupt(&dma0_isr_single);
+}
+
+void setup_ADC_single1(void) {
+  // clear buffers
+  memset((void*)buf_a, 0, sizeof(buf_a));
+  // Initialize the ADC
+  if (sgain >1) { adc->enablePGA(sgain, ADC_1); }  else { adc->disablePGA(ADC_1); }         
+  adc->setReference(Vref, ADC_1);
+  adc->setAveraging(aver); 
+  adc->setResolution(res); 
+  if (((Vref == ADC_REFERENCE::REF_3V3) && (Vmax > 3.29)) || ((Vref == ADC_REFERENCE::REF_1V2) && (Vmax > 1.19))) { 
+    adc->disableCompare(ADC_1);
+  } else if (Vref == ADC_REFERENCE::REF_3V3) {
+    adc->enableCompare(Vmax/3.3*adc->getMaxValue(ADC_0), 0, ADC_1);
+  } else if (Vref == ADC_REFERENCE::REF_1V2) {
+    adc->enableCompare(Vmax/1.2*adc->getMaxValue(ADC_0), 0, ADC_1);    
+  }
+  //adc->enableCompareRange(1.0*adc->getMaxValue(ADC_1)/3.3, 2.0*adc->getMaxValue(ADC_1)/3.3, 1, 1, ADC_1); // ready if value lies out of [1.0,2.0] V
+  adc->setConversionSpeed(conv_speed, ADC_1);
+  adc->setSamplingSpeed(samp_speed, ADC_1);      
 
   // Initialize dma1
   dma1.source((volatile uint16_t&)ADC0_RA);
@@ -216,7 +243,7 @@ void setup_ADC_single(void) {
   dma1.attachInterrupt(&dma1_isr_single);
 }
 
-void start_ADC(void) {
+void start_ADC0(void) {
     // Start adc
     aorb_busy  = 1;
     a_full    = 0;
@@ -226,19 +253,50 @@ void start_ADC(void) {
     adc->adc0->startPDB(freq); // set ADC_SC2_ADTRG
     adc->enableDMA(ADC_0); // set ADC_SC2_DMAEN
     dma0.enable();
+}
+
+void start_ADC1(void) {
+    // Start adc
+    aorb_busy  = 1;
+    a_full    = 0;
+    b_full    = 0;
+    adc->adc1->startSingleRead(readPin1);
+    // frequency, hardware trigger and dma
+    adc->adc1->startPDB(freq); // set ADC_SC2_ADTRG
+    adc->enableDMA(ADC_0); // set ADC_SC2_DMAEN
     dma1.enable();
 }
 
-void stop_ADC(void) {
+void stop_ADC0(void) {
     PDB0_CH0C1 = 0; // diasble ADC0 pre triggers    
     dma0.disable();
+    adc->disableDMA(ADC_0);
+    adc->adc0->stopPDB();
+    aorb_busy = 0;
+}
+
+void stop_ADC1(void) {
+    PDB0_CH1C1 = 0; // diasble ADC0 pre triggers    
     dma1.disable();
     adc->disableDMA(ADC_0);
     adc->adc0->stopPDB();
     aorb_busy = 0;
 }
 
-void wait_ADC_single() {
+void wait_ADC_single0() {
+  uint32_t   end_time = micros();
+  uint32_t start_time = micros();
+  while (!a_full) {
+    end_time = micros();
+    if ((end_time - start_time) > 1100000) {
+      Serial.printf("Timeout %d %d\n", a_full, aorb_busy);
+      break;
+    }
+  }
+  //Serial.printf("Conversion complete in %d us\n", end_time-start_time);
+}
+
+void wait_ADC_single1() {
   uint32_t   end_time = micros();
   uint32_t start_time = micros();
   while (!a_full) {
