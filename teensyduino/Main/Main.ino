@@ -200,21 +200,14 @@ void serial16Print(uint16_t u) {
 
 void printBuffer(uint16_t *buffer, size_t start, size_t end) { 
   size_t i;
-  if (VERBOSE) {
-    for (i = start; i <= end; i++) { 
+  for (i = start; i <= end; i++) { 
       //convertval = (buffer[i]*refVoltage)/ADCresolution;
       //uint16_t n = buffer[i];
       //uint8_t first = n>>8;
       //Serial.write(uint8_t(first));
       //uint8_t second = n&255;
       //Serial.write(uint8_t(second));
-      Serial.println(buffer[i]); } //prints correctyl in serial monitor
-    
-  } else {
-    for (i = start; i <= end; i++) {
-      //convertval = (buffer[i]*refVoltage)/ADCresolution;
-      serial16Print(buffer[i]);
-      Serial.println(); }
+      Serial.write(buffer[i]); } //prints correctyl in serial monitor
   }
 }
 
@@ -442,8 +435,10 @@ void loop() { // ===================================================
           stop_ADC1();
           adc->printError();
           adc->resetError();
-      } else if (inByte == 'p') { // print buffer
+      } else if (inByte == 'a') { // print buffer
           printBuffer(buf_a, 0, BUFFER_SIZE-1);
+          
+      } else if (inByte == 'b') { // print buffer          
           printBuffer(buf_b, 0, BUFFER_SIZE-1);
       }
     } // end if serial input available
