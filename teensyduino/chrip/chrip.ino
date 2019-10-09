@@ -37,15 +37,21 @@ void loop(){
 //  for(unsigned int i = 0; i < (sizeof(ch)/sizeof(ch[0])); i++){
 
     digitalWrite(LED, chirp[i]);
+    delayMicroseconds(0);
 //    delay(1000);
 //    Serial.write(ch[i]);
 //    Serial.print(000);
 //    Serial.print("\n");
   }
+//  int u = usec;
+//  Serial.println(u);
   digitalWrite(LED, 0);
+//  elapsedMicros usec = 0;
   for(unsigned int i = 0; i < 8281;i++){
     rx[i]=analogRead(receivingPin);
   }
+//  int u = usec;
+//  Serial.println(u);
 //  Serial.print(sizeof(rx)/sizeof(rx[0]));
 //int count = 0;
   Serial.clear();
@@ -53,7 +59,7 @@ void loop(){
     Serial.write(val);
   }
   Serial.flush();
-  delay(1000);
+  delay(5000);
  
 //  delay(1000);
 

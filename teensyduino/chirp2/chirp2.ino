@@ -24,18 +24,21 @@ void setup() {
  * Main loop to be run continuously 
  */
 void loop(){
+  //outputting chirp
   for(unsigned int i = 0; i < (sizeof(chirp)/sizeof(chirp[0])); i++){
     digitalWrite(LED, chirp[i]);
   }
   digitalWrite(LED, 0);
+  //receiving echoes
   for(unsigned int i = 0; i < 8281;i++){
     rx[i]=analogRead(receivingPin);
   }
   Serial.clear();
+  //writing out values to serial
   for (uint8_t val : rx){
     Serial.write(val);
   }
   Serial.flush();
-  delay(1000);
+  delay(5000);
  
 }
