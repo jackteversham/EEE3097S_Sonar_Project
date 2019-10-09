@@ -22,7 +22,7 @@ void setup() {
   pinMode(LED, OUTPUT);
 //  analogWriteResolution(8);
 
-  for (int i=0; i < (sizeof(chirp)/sizeof(chirp[0])); i++){
+  for (uint i=0; i < (sizeof(chirp)/sizeof(chirp[0])); i++){
     
   }
 }
