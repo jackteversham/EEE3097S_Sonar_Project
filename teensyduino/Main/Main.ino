@@ -122,7 +122,7 @@ void start_ADC1(void) {
     adc->adc1->startSingleRead(readPin1);
     // frequency, hardware trigger and dma
     adc->adc1->startPDB(freq); // set ADC_SC2_ADTRG
-    adc->enableDMA(ADC_0); // set ADC_SC2_DMAEN
+    adc->enableDMA(ADC_1); // set ADC_SC2_DMAEN
     dma1.enable();
 }
 
@@ -137,7 +137,7 @@ void stop_ADC0(void) {
 void stop_ADC1(void) {
     PDB0_CH1C1 = 0; // diasble ADC0 pre triggers    
     dma1.disable();
-    adc->disableDMA(ADC_0);
+    adc->disableDMA(ADC_1);
     adc->adc0->stopPDB();
     aorb_busy = 0;
 }
@@ -198,8 +198,7 @@ void serial16Print(uint16_t u) {
   }
 }
 
-//modified
-void printBuffer(uint16_t *buffer, size_t start, size_t end) { //change to float array??
+void printBuffer(uint16_t *buffer, size_t start, size_t end) { 
   size_t i;
   if (VERBOSE) {
     for (i = start; i <= end; i++) { 
