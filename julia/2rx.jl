@@ -10,55 +10,55 @@ include("chirp.ji");
 # %% define rect
 rect(t) = (abs.(t) .<= 0.5)*1.0;
 # https://github.com/JuliaIO/LibSerialPort.jl/blob/master/examples/console.jl
-function serial_loop(sp::SerialPort)
-    input_line = ""
-    mcu_message = ""
-
-    println("Starting I/O loop. Press ESC [return] to quit")
-
-    while true
-        # Poll for new data without blocking
-        @async input_line = readline(keep=true)
-        @async mcu_message *= read(sp, String)
-
-        # Alternative read method:
-        # Requires setting a timeout and may cause bottlenecks
-        # @async mcu_message = readuntil(sp, "\r\n", 50)
-
-        occursin("\e", input_line) && exit()
-
-        # Send user input to device
-        if endswith(input_line, '\n')
-            write(sp, "$input_line")
-            plotrec(sp)
-            input_line = ""
-        end
-
-        # Give the queued tasks a chance to run
-        sleep(0.0001)
-    end
-end
-
-function console(args...)
-
-    # if length(args) != 2
-    #     println("Usage: $(basename(@__FILE__)) port baudrate")
-    #     println("Available ports:")
-    #     list_ports()
-    #     return
-    # end
-
-    # Open a serial connection to the microcontroller
-    mcu = SerialPort("COM3:", 115200);
-
-    serial_loop(mcu)
-end
-
-console();
+# function serial_loop(sp::SerialPort)
+#     input_line = ""
+#     mcu_message = ""
+#
+#     println("Starting I/O loop. Press ESC [return] to quit")
+#
+#     while true
+#         # Poll for new data without blocking
+#         @async input_line = readline(keep=true)
+#         @async mcu_message *= read(sp, String)
+#
+#         # Alternative read method:
+#         # Requires setting a timeout and may cause bottlenecks
+#         # @async mcu_message = readuntil(sp, "\r\n", 50)
+#
+#         occursin("\e", input_line) && exit()
+#
+#         # Send user input to device
+#         if endswith(input_line, '\n')
+#             write(sp, "$input_line")
+#             plotrec(sp)
+#             input_line = ""
+#         end
+#
+#         # Give the queued tasks a chance to run
+#         sleep(0.0001)
+#     end
+# end
+#
+# function console(args...)
+#
+#     # if length(args) != 2
+#     #     println("Usage: $(basename(@__FILE__)) port baudrate")
+#     #     println("Available ports:")
+#     #     list_ports()
+#     #     return
+#     # end
+#
+#     # Open a serial connection to the microcontroller
+#     mcu = SerialPort("COM3:", 9600);
+#
+#     serial_loop(mcu)
+# end
+#
+# console();
 
 rect(t) = (abs.(t) .<= 0.5)*1.0;
 
-function plotrec(sp::SerialPort)
+function plotrec()
     # set up Axes
     receivePeriod = 7.246e-6
     receivingTime = 60e-3
@@ -89,23 +89,46 @@ function plotrec(sp::SerialPort)
     rangeDependence = range.^2;
     v_mf_compensated = rangeDependence .* v_mf;
 
+    sp = SerialPort("/dev/tty.usbmodem48351501", 9600);
+    # sp = SerialPort("COM3:", 9600);
     while true
-    # read from serial
-        write(sp, "s")
-        write(sp, "c")
-        write(sp, l)
-        while bytesavailable(sp) == 0
+        readavailable(sp)
+
+        write(sp,"s\n")
+        write(sp,"c\n")
+        write(sp,"a\n")
+
+        while bytesavailable(sp) < 1
             sleep(0.1)
         end
-        sbuffer = readavailable(sp)
-        v_rxl = Vector{UInt8}(sbuffer)
+        sleep(0.1);
 
-        write(sp, r)
-        while bytesavailable(sp) == 0
+        global sbuffera = "";
+
+        while true
             sleep(0.01)
+            if bytesavailable(sp) < 1
+                break
+            end
+            global sbuffera = string(sbuffera,readavailable(sp))
         end
-        sbuffer = readavailable(sp)
-        v_rxr = Vector{UInt8}(sbuffer)
+
+
+        write(sp,"b\n")
+        global sbufferb = "";
+        while true
+            sleep(0.01)
+            if bytesavailable(sp) < 1
+                break
+            end
+            global sbufferb = string(sbufferb,readavailable(sp))
+        end
+
+        v_rxl_string = split(sbuffera,"\r\n")
+        v_rxr_string = split(sbufferb,"\r\n")
+
+        v_rxl = parse.(Float64, v_rxl_string)
+        v_rxr = parse.(Float64, v_rxr_string)
 
         # remove DC Component from received signal
         avg_inl = mean(v_rxl);
@@ -119,9 +142,9 @@ function plotrec(sp::SerialPort)
         V_RXL = fft(v_rxl);
         V_RXR = fft(v_rxr);
 
-        # filtering
-        V_RXL = V_RXL .* BPF;
-        V_RXR = V_RXR .* BPF;
+        # # filtering
+        # V_RXL = V_RXL .* BPF;
+        # V_RXR = V_RXR .* BPF;
 
         # matched filteringn
         V_MFL = H.*V_RXL;
@@ -135,8 +158,25 @@ function plotrec(sp::SerialPort)
         maxVal_r = maximum(v_mfr);
         maxInd_r = argmax(v_mfr);
 
-        timediff = (maxInd_l-maxInd_r)*receivePeriod
-        phaseangle =
+        V_ANAL_L = 2*V_MFL; # make a copy and double the values
+        N = length(V_MFL);
+        if mod(N,2)==0 # case N even
+            neg_freq_range = Int(N/2):N; # Define range of "neg-freq" components
+        else # case N odd
+            neg_freq_range = Int((N+1)/2):N;
+        end
+        V_ANAL_L[neg_freq_range] .= 0; # Zero out neg components in 2nd half of array.
+        v_anal_l = ifft(V_ANAL_L);
+
+        V_ANAL_R = 2*V_MFR; # make a copy and double the values
+        N = length(V_MFR);
+        if mod(N,2)==0 # case N even
+            neg_freq_range = Int(N/2):N; # Define range of "neg-freq" components
+        else # case N odd
+            neg_freq_range = Int((N+1)/2):N;
+        end
+        V_ANAL_R[neg_freq_range] .= 0; # Zero out neg components in 2nd half of array.
+        v_anal_r = ifft(V_ANAL_R);
 
     end
 
