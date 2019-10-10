@@ -1,5 +1,5 @@
-#include "ADC.h"
-#include "DMAChannel.h"
+#include <ADC.h>
+#include <DMAChannel.h>
 //#include "Waveform.h"
 
 #define oneHzSample 1000000/500  // sample for the 1Hz signal expressed in microseconds 
@@ -67,7 +67,7 @@ ADC_CONVERSION_SPEED  conv_speed     = ADC_CONVERSION_SPEED::VERY_HIGH_SPEED;
 void setup() { // =====================================================
 
   pinMode(LED_BUILTIN, OUTPUT);
-  pinMode(readPin0, INPUT); // single ended
+  pinMode(readPin0, INPUT);
   pinMode(readPin1, INPUT);
 
   // Setup monitor pin
@@ -372,38 +372,17 @@ void loop() { // ===================================================
       Serial.println(inByte);
 
        if(inByte == 's')  { //send out chirp
-//          while(1)
-//          {
-//            float val = waveformsTable[wave0][i];
-//            float rangeMultiplier = (desiredAmplitude*DACresolution)/refVoltage;
-//            float out = val*rangeMultiplier; //1860 - range.amplitude of 1.5V, 1240 - range up to 1V, 2480 - range up to 2V 
-//            float DACoffset = (desiredOffset*DACresolution)/refVoltage;
-//            float newOut = out + DACoffset; //add offset (1860 = 1.5V) (1240 = 1V)
-            int upper = (sizeof(chirp)/sizeof(chirp[0]));
-//            elapsedMicros usec = 0;
-            for(unsigned int i = 0; i < upper; i++){
-                digitalWrite(13, chirp[i]);
-              }
-//              int time = usec;
-//              Serial.println(time);
-              
-//            for (int f = 39000; f <= 41000; f += 500) {
-//                  tone(13, f);
-//                  delay(1);
-//              }
-//              noTone(13);
-            }
 
-//            sample = 9;//0.0001 //0.000025
-//            delayMicroseconds(sample);  // Hold the sample value for the sample time
-//           }
-//          }
+          for(unsigned int i = 0; i < upper; i++){
+              digitalWrite(13, chirp[i]);
+            }
+      }
       
       else if (inByte == 'c') { // single block conversion
-          if ((aorb_busy == 1) || (aorb_busy == 2)) { 
-            stop_ADC0(); 
-            stop_ADC1(); 
-           }
+//          if ((aorb_busy == 1) || (aorb_busy == 2)) { 
+//            stop_ADC0(); 
+//            stop_ADC1(); 
+//           }
           //setup_ADC_single();
           //start_ADC();
           setup_ADC_single0();
@@ -419,6 +398,7 @@ void loop() { // ===================================================
           
           adc->printError();
           adc->resetError();
+          
       } else if (inByte == 'a') { // print buffer a
           printBuffer(buf_a, 0, BUFFER_SIZE-1);
           
