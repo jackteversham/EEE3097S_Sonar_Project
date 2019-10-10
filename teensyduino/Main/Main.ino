@@ -9,7 +9,7 @@
 #define desiredOffset 1 //1.5
 #define desiredAmplitude 1 //1.5
 
-#define BUFFER_SIZE 20000                    // up to 85% of dynamic memory (65,536 bytes)
+#define BUFFER_SIZE 24000                    // up to 85% of dynamic memory (65,536 bytes)
 #define SAMPLE_RATE 400000                     // see below maximum values
 #define SAMPLE_AVERAGING 0                    // 0, 4, 8, 16 or 32
 #define SAMPLING_GAIN 1                       // 1, 2, 4, 8, 16, 32 or 64
@@ -141,7 +141,7 @@ void wait_ADC_single0() {
   uint32_t start_time = micros();
   while (!a_full) {
     end_time = micros();
-    if ((end_time - start_time) > 1100000) {
+    if ((end_time - start_time) > 11000000) {
       Serial.printf("Timeout %d %d\n", a_full, aorb_busy);
       break;
     }
@@ -154,7 +154,7 @@ void wait_ADC_single1() {
   uint32_t start_time = micros();
   while (!b_full) {
     end_time = micros();
-    if ((end_time - start_time) > 1100000) {
+    if ((end_time - start_time) > 11000000) {
       Serial.printf("Timeout %d %d\n", b_full, aorb_busy);
       break;
     }
@@ -369,24 +369,25 @@ void loop() { // ===================================================
     
     if (Serial.available()) {
       inByte = Serial.read();
-      Serial.println(inByte);
+//      Serial.println(inByte);
 
        if(inByte == 's')  { //send out chirp
+          setup_ADC_single0();
+          setup_ADC_single1();
           unsigned int upper = (sizeof(chirp)/sizeof(chirp[0]));
           for(unsigned int i = 0; i < upper; i++){
               digitalWrite(13, chirp[i]);
             }
-      }
-      
-      else if (inByte == 'c') { // single block conversion
+//      }
+//      
+//      else if (inByte == 'c') { // single block conversion
 //          if ((aorb_busy == 1) || (aorb_busy == 2)) { 
 //            stop_ADC0(); 
 //            stop_ADC1(); 
 //           }
           //setup_ADC_single();
           //start_ADC();
-          setup_ADC_single0();
-          setup_ADC_single1();
+          
           
           start_ADC0();
           start_ADC1();
