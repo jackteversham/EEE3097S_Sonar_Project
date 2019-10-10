@@ -306,8 +306,8 @@ void setup_ADC_single0(void) {
   // Initialize the ADC
   if (sgain >1) { adc->enablePGA(sgain, ADC_0); }  else { adc->disablePGA(ADC_0); }         
   adc->setReference(Vref, ADC_0);
-  adc->setAveraging(aver, ADC_0)); 
-  adc->setResolution(res, ADC_0)); 
+  adc->setAveraging(aver, ADC_0); 
+  adc->setResolution(res, ADC_0); 
   if (((Vref == ADC_REFERENCE::REF_3V3) && (Vmax > 3.29)) || ((Vref == ADC_REFERENCE::REF_1V2) && (Vmax > 1.19))) { 
     adc->disableCompare(ADC_0);
   } else if (Vref == ADC_REFERENCE::REF_3V3) {
@@ -372,7 +372,7 @@ void loop() { // ===================================================
       Serial.println(inByte);
 
        if(inByte == 's')  { //send out chirp
-
+          unsigned int upper = (sizeof(chirp)/sizeof(chirp[0]));
           for(unsigned int i = 0; i < upper; i++){
               digitalWrite(13, chirp[i]);
             }
