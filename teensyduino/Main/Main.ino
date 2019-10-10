@@ -64,9 +64,6 @@ ADC_REFERENCE               Vref     = ADC_REFERENCE::REF_3V3;
 ADC_SAMPLING_SPEED    samp_speed     = ADC_SAMPLING_SPEED::VERY_HIGH_SPEED;
 ADC_CONVERSION_SPEED  conv_speed     = ADC_CONVERSION_SPEED::VERY_HIGH_SPEED;
 
-// Processing Buffer
-uint16_t processed_buf[BUFFER_SIZE]; // processed data buffer
-
 void setup() { // =====================================================
 
   pinMode(LED_BUILTIN, OUTPUT);
@@ -85,13 +82,12 @@ void setup() { // =====================================================
   // clear buffers
   memset((void*)buf_a, 0, sizeof(buf_a));
   memset((void*)buf_b, 0, sizeof(buf_b));
-  memset((void*)processed_buf, 0, sizeof(buf_b));
   
   // LED on, setup complete
   //digitalWriteFast(ledPin, HIGH);
 
   //Vary analogWriteResolution 
-  analogWriteResolution(12);  //12 bit = 4096 levels
+  //analogWriteResolution(12);  //12 bit = 4096 levels
 
 } // setup =========================================================
 
@@ -159,7 +155,7 @@ void wait_ADC_single1() {
   while (!b_full) {
     end_time = micros();
     if ((end_time - start_time) > 1100000) {
-      Serial.printf("Timeout %d %d\n", a_full, aorb_busy);
+      Serial.printf("Timeout %d %d\n", b_full, aorb_busy);
       break;
     }
   }
@@ -303,15 +299,15 @@ void dumpDMA_TCD(const char *psz, DMABaseClass *dmabc)
 
 }
 
-// ADC
+// ADC 0
 void setup_ADC_single0(void) {
   // clear buffers
   memset((void*)buf_a, 0, sizeof(buf_a));
   // Initialize the ADC
   if (sgain >1) { adc->enablePGA(sgain, ADC_0); }  else { adc->disablePGA(ADC_0); }         
   adc->setReference(Vref, ADC_0);
-  adc->setAveraging(aver); 
-  adc->setResolution(res); 
+  adc->setAveraging(aver, ADC_0)); 
+  adc->setResolution(res, ADC_0)); 
   if (((Vref == ADC_REFERENCE::REF_3V3) && (Vmax > 3.29)) || ((Vref == ADC_REFERENCE::REF_1V2) && (Vmax > 1.19))) { 
     adc->disableCompare(ADC_0);
   } else if (Vref == ADC_REFERENCE::REF_3V3) {
@@ -328,18 +324,18 @@ void setup_ADC_single0(void) {
   dma0.destinationBuffer(buf_a, sizeof(buf_a));
   dma0.triggerAtHardwareEvent(DMAMUX_SOURCE_ADC0);
   dma0.interruptAtCompletion();
-  //dma0.disableOnCompletion();
   dma0.attachInterrupt(&dma0_isr_single);
 }
 
+// ADC 1
 void setup_ADC_single1(void) {
   // clear buffers
   memset((void*)buf_b, 0, sizeof(buf_b));
   // Initialize the ADC
   if (sgain >1) { adc->enablePGA(sgain, ADC_1); }  else { adc->disablePGA(ADC_1); }         
   adc->setReference(Vref, ADC_1);
-  adc->setAveraging(aver); 
-  adc->setResolution(res); 
+  adc->setAveraging(aver, ADC_1); 
+  adc->setResolution(res, ADC_1); 
   if (((Vref == ADC_REFERENCE::REF_3V3) && (Vmax > 3.29)) || ((Vref == ADC_REFERENCE::REF_1V2) && (Vmax > 1.19))) { 
     adc->disableCompare(ADC_1);
   } else if (Vref == ADC_REFERENCE::REF_3V3) {
@@ -356,7 +352,6 @@ void setup_ADC_single1(void) {
   dma1.destinationBuffer(buf_b, sizeof(buf_b));
   dma1.triggerAtHardwareEvent(DMAMUX_SOURCE_ADC1);
   dma1.interruptAtCompletion();
-  //dma1.disableOnCompletion();
   dma1.attachInterrupt(&dma1_isr_single);
 }
 
@@ -373,12 +368,10 @@ void loop() { // ===================================================
     lastInAvail = currentTime;
     
     if (Serial.available()) {
-      inByte=Serial.read();
+      inByte = Serial.read();
       Serial.println(inByte);
 
-       if(inByte == 's')
-        {
-          //Serial.println("Sending Chirp");
+       if(inByte == 's')  { //send out chirp
 //          while(1)
 //          {
 //            float val = waveformsTable[wave0][i];
@@ -387,38 +380,18 @@ void loop() { // ===================================================
 //            float DACoffset = (desiredOffset*DACresolution)/refVoltage;
 //            float newOut = out + DACoffset; //add offset (1860 = 1.5V) (1240 = 1V)
             int upper = (sizeof(chirp)/sizeof(chirp[0]));
-            elapsedMicros usec = 0;
+//            elapsedMicros usec = 0;
             for(unsigned int i = 0; i < upper; i++){
                 digitalWrite(13, chirp[i]);
               }
-              int time = usec;
-              Serial.println(time);
+//              int time = usec;
+//              Serial.println(time);
               
-for (int f = 39000; f <= 41000; f += 500) {
-      tone(13, f);
-      delay(1);
-  }
-  noTone(13);
-
-            
-            //analogWrite(A21, newOut);  // write the selected waveform on DAC0
-              
-//            i++;
-//            if(i == (sizeof(chirp)/sizeof(chirp[0])))
-//            {// Reset the counter to repeat the wave
-//              //end of one wave
-//              //read in values
-//              //Serial.print(val);
-//              //delayMicroseconds(1); //replace with analogRead?
-//              //reset counter to repeat wave
-//              i = 0;
-//              counter++;
-//              if(counter==1) //change back to 5
-//              {
-////                Serial.println("Sent");
-//                counter=0;
-//                break;
+//            for (int f = 39000; f <= 41000; f += 500) {
+//                  tone(13, f);
+//                  delay(1);
 //              }
+//              noTone(13);
             }
 
 //            sample = 9;//0.0001 //0.000025
@@ -435,18 +408,21 @@ for (int f = 39000; f <= 41000; f += 500) {
           //start_ADC();
           setup_ADC_single0();
           setup_ADC_single1();
+          
           start_ADC0();
           start_ADC1();
+          
           wait_ADC_single0();
-          wait_ADC_single1();
           stop_ADC0(); 
+          wait_ADC_single1();
           stop_ADC1();
+          
           adc->printError();
           adc->resetError();
-      } else if (inByte == 'a') { // print buffer
+      } else if (inByte == 'a') { // print buffer a
           printBuffer(buf_a, 0, BUFFER_SIZE-1);
           
-      } else if (inByte == 'b') { // print buffer          
+      } else if (inByte == 'b') { // print buffer bs 
           printBuffer(buf_b, 0, BUFFER_SIZE-1);
       }
     } // end if serial input available
