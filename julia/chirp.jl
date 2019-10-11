@@ -3,7 +3,7 @@ using SerialPorts;
 using Plots;
 using Statistics;
 include("chirppulse.jl");
-
+# Pkg.add("GR")
 
 # recording chirp
 sp = SerialPort("/dev/tty.usbmodem48351501", 9600);
@@ -11,17 +11,17 @@ sp = SerialPort("/dev/tty.usbmodem48351501", 9600);
 readavailable(sp)
 
 write(sp,"s\n")
-write(sp,"c\n")
+# write(sp,"c\n")
 write(sp,"a\n")
 
-# while true
-#     write(sp,"s\n")
-#     sleep(0.5)
-# end
+while true
+    write(sp,"s\n")
+    # sleep(0.0)
+end
 
 
 while bytesavailable(sp) < 1
-    sleep(1)
+    sleep(0.01)
 end
 sleep(1);
 
@@ -37,7 +37,7 @@ end
 
 # sbuffera = readavailable(sp);
 sbs = split(sbuffera,"\r\n")
-v_rxl_string = sbs[6:24005];
+v_rxl_string = sbs[1:24000];
 # print(length(sbs))
 
 write(sp,"b\n")
@@ -51,9 +51,11 @@ while true
 end
 
 sbsb = split(sbufferb,"\r\n")
-v_rxr_string = sbsb[2:24001];
+v_rxr_string = sbsb[1:24000];
 
 v_rxr1 = parse.(Float64, v_rxr_string)
+v_rxl1 = parse.(Float64, v_rxl_string)
+plot(v_rxl1)
 plot(v_rxr1)
 
 # v_rxl = parse.(Float64, v_rxl_string)
