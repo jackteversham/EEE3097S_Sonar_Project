@@ -2,7 +2,6 @@ import Pkg;
 # Pkg.add("Interact")
 # Pkg.add("PyPlot")
 # Pkg.add("Blink")
-# using Plots;
 using SerialPorts;
 using FFTW;
 using Statistics;
@@ -46,13 +45,10 @@ f_axis = (0:N-1) * Δf
 CHIRP = fft(chirp);
 H = conj(CHIRP);
 
-
-BPF = rect((ω .- ω0)/(2*π*B)) + rect( (ω .+ (ω0 .- 2*π/receivePeriod) )/(2*π*B) );
-
-rangeDependence = range.^2;
-
+#connecting to teensy over serial
 sp = SerialPort("/dev/tty.usbmodem48351501", 9600);
 
+#configuring the plots
 fig,axes = subplots(4,1);
 recl, = axes[1].plot(range, length(range));
 recr, = axes[1].plot(range, length(range));
@@ -68,6 +64,7 @@ while true
     readavailable(sp)
 
     write(sp,"s\n");
+    #Ping teensy to send one ADC's buffer
     write(sp,"a\n");
     println("chirp sent and recieving");
     while bytesavailable(sp) < 1
@@ -77,6 +74,7 @@ while true
 
     sbuffera = "";
 
+    #wait for the teensy to send everything before continuing
     while true
         sleep(0.02)
         if bytesavailable(sp) < 1
@@ -84,8 +82,9 @@ while true
         end
         sbuffera = string(sbuffera,readavailable(sp))
     end
-
+    #Ping teensy to send second ADC's buffer 
     write(sp,"b\n")
+
     sbufferb = "";
     while true
         sleep(0.02)
@@ -94,6 +93,7 @@ while true
         end
         sbufferb = string(sbufferb,readavailable(sp))
     end
+    # if there is a timeout error, send a new chip
     b = (occursin(sbuffera,"Timeout") || occursin(sbufferb,"Timeout"));
     while b
         readavailable(sp)
@@ -203,6 +203,7 @@ while true
     print("Phi = ")
     println(phi)
 
+    # fiding the max values and positions of signals, representing the target
     maxVal_l = maximum(abs.(v_bb_l));
     maxInd_l = argmax(abs.(v_bb_l));
     maxVal_r = maximum(abs.(v_bb_r));
@@ -215,55 +216,30 @@ while true
 
     anglemax_l = angle(v_bb_l[maxInd_l]);
     anglemax_r = angle(v_bb_l[maxInd_r]);
+    println("Plotting")
 
-    # println(maxInd_l);
-    # println(anglemax_l);
-    # println(maxInd_r);
-    # println(anglemax_r);
-    println("Plotting");
-
-    # subplot(411)
-    # cla()
-    # plot(range,v_rxl1)
-    # plot(range,v_rxr1)
+    # change the data of subplots to improve processing time
     recl.set_ydata(v_rxl1)
     draw()
     recr.set_ydata(v_rxr1)
     draw()
-
-    # subplot(412)
-    # cla()   
-    # plot(range,angle.(v_bb_l))          
-    # plot(range,angle.(v_bb_r))
-    
     bbal.set_ydata(angle.(v_bb_l))
     draw()
     bbar.set_ydata(angle.(v_bb_l))
     draw()
-
-    # subplot(413)
-    # cla()
-    # plot(range,abs.(v_bb_l))     
-    # plot(range,abs.(v_bb_r))     
-
     bbl.set_ydata(abs.(v_bb_l))
     draw()
     bbr.set_ydata(abs.(v_bb_r))
     draw()
 
-    
-
     argument = (8.575e-3)*(phi)/(2*pi*0.025);
-    theta = asin(argument); #0.122 seems to be a delay from the zero angle - a fork of calibration
+    theta = asin(argument);
     println(theta)
     degrees = theta*(180/(pi));
     println(degrees);
     println("done")
-
+    # sending the angle and range to the GUI displaying polar positions. 
     updateGUI(theta,r);
     show()
 
 end
-
-
-#to find maximum index argmin(X), to find maximum value maximum(X)
