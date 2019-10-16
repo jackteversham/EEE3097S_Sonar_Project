@@ -40,7 +40,7 @@ function updateGUI(theta, r)
    labelStr = string("Cartesian: x=", string(pos[1]), " y=", string(pos[2])
       , "\nPolar: theta=", string(round(theta; digits=4)), " r=", string(round(r, digits=2)));
    point = ax[:scatter](theta,r, color="red") ; # add point
-   label = ax.annotate( labelStr, xy=[0,0], xytext=[-3pi/4,20]); # add label
+   label = ax.annotate( labelStr, xy=[0,0], xytext=[-3pi/4,10]); # add label
 end
 
 # set up plot
